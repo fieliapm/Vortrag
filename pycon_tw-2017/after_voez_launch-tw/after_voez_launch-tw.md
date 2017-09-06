@@ -14,6 +14,12 @@ how to resolve problems of mobile game server development and service maintenanc
 
 ## who am I?
 
+![fieliapm](https://pbs.twimg.com/profile_images/591670980021387264/aZAYLRUe_400x400.png)
+
+----
+
+<!-- .slide: data-transition="convex" -->
+
 * programmer from Rayark, a game company in Taiwan
 * backend engineer
 * usually develop something related to my work in Python, Ruby, Golang, C#
@@ -144,6 +150,18 @@ Date: Fri, 09 Jun 2017 10:20:30 GMT
     "status": "ok"
 }
 ```
+
+----
+
+<!-- .slide: data-transition="convex" -->
+
+API layout
+
+1. gamedata/event/asset download
+2. player info setting/getting
+3. leaderboard (top/self/friends)
+4. start-play authorization & score uploading
+5. avatar lottery
 
 ---
 
@@ -534,8 +552,8 @@ Date: Fri, 09 Jun 2017 10:20:30 GMT
   * different revisions of asset files should be located at individual URLs
     * URL must contains revision ID or checksum
 * entry data which lists asset files
-  * attach expire time via **Cache-Control** **Expires**
-  * CDN will cache contents until expired
+  * attach event end time via **Cache-Control** or **Expires**
+  * CDN will cache contents until event ended
   * client can use expire time as refresh timer
     * ex: back to main menu & display updated game event
 

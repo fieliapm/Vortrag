@@ -1,6 +1,7 @@
 VOEZ 稼動後
 ===
 
+<!-- .slide: data-background="#FFDFEF" -->
 <!-- .slide: data-transition="zoom" -->
 
 # after VOEZ launch
@@ -13,6 +14,12 @@ how to resolve problems of mobile game server development and service maintenanc
 <!-- .slide: data-transition="convex" -->
 
 ## who am I?
+
+![fieliapm](https://pbs.twimg.com/profile_images/591670980021387264/aZAYLRUe_400x400.png)
+
+----
+
+<!-- .slide: data-transition="convex" -->
 
 * programmer from Rayark, a game company in Taiwan
 * backend engineer
@@ -74,7 +81,7 @@ how to resolve problems of mobile game server development and service maintenanc
 <!-- .slide: data-transition="convex" -->
 
 5. HTTP protocol
-6. genuine & purchase verification
+6. appendix: genuine & purchase verification
     1. clean leaderboard: signature
     2. legal game play: activation
 7. stability
@@ -145,10 +152,23 @@ Date: Fri, 09 Jun 2017 10:20:30 GMT
 }
 ```
 
+----
+
+<!-- .slide: data-transition="convex" -->
+
+API layout
+
+1. gamedata/event/asset download
+2. player info setting/getting
+3. leaderboard (top/self/friends)
+4. start-play authorization & score uploading
+5. avatar lottery
+
 ---
 
 <!-- .slide: data-transition="convex" -->
 
+## appendix:
 ## genuine
 ## &
 ## purchase verification
@@ -432,8 +452,12 @@ def gacha(player_access_token):
 
 <!-- .slide: data-transition="convex" -->
 
+<!--
 ![SINoALICE](https://i.imgur.com/0LZjGBO.jpg)
 https://i.imgur.com/0LZjGBO.jpg
+-->
+
+![VOEZ maintenance hell](https://i.imgur.com/vdCxAyD.png)
 
 ---
 
@@ -534,8 +558,8 @@ Date: Fri, 09 Jun 2017 10:20:30 GMT
   * different revisions of asset files should be located at individual URLs
     * URL must contains revision ID or checksum
 * entry data which lists asset files
-  * attach expire time via **Cache-Control** **Expires**
-  * CDN will cache contents until expired
+  * attach event end time via **Cache-Control** or **Expires**
+  * CDN will cache contents until event ended
   * client can use expire time as refresh timer
     * ex: back to main menu & display updated game event
 
@@ -697,6 +721,10 @@ def get_unix_epoch_day_in_datetime(datetime_obj, utc_offset_in_timedelta, local_
 .reveal code {
     font-size: 12px !important;
     line-height: 1.2;
+}
+
+body {
+    background-color: Indigo;
 }
 
 .rightpart{

@@ -45,8 +45,8 @@ the Detail of MongoDB & MongoEngine :dizzy:
 6. race condition
     1. commands for updating data atomically
     2. ORM design & atomic
-       1. denormalization
-       2. referencing
+        1. denormalization
+        2. referencing
 
 ----
 

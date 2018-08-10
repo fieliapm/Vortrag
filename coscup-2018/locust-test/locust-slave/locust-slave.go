@@ -32,7 +32,8 @@ func bar() {
 
 func exampleGet() {
 	start := boomer.Now()
-	resp, err := http.Get("https://dl.google.com/go/go1.10.3.darwin-amd64.pkg")
+	resp, err := http.Get("https://dl.google.com/go/go1.10.3.src.tar.gz")
+	//resp, err := http.Get("https://cache.ruby-lang.org/pub/ruby/2.5/ruby-2.5.1.tar.gz")
 	if err == nil {
 		func() {
 			defer resp.Body.Close()

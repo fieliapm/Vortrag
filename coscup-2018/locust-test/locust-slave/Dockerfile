@@ -3,7 +3,6 @@ MAINTAINER fieliapm (fieliapm@gmail.com)
 
 RUN apt-get update \
     && apt-get install -y ca-certificates \
-    && apt-get install -y libczmq-dev libzmq3-dev libsodium-dev \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /locust-slave

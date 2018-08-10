@@ -65,7 +65,7 @@ func main() {
 
 	task3 := &boomer.Task{
 		Name:   "example_get",
-		Weight: 10000,
+		Weight: 30,
 		Fn:     exampleGet,
 	}
 

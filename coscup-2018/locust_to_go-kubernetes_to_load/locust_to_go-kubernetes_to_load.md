@@ -26,7 +26,6 @@ Locust to Go, Kubernetes to Load
 * built almost entire VOEZ game server by myself only
 * supported Sdorica backend development
 
-
 ---
 
 <!-- .slide: data-transition="convex" -->

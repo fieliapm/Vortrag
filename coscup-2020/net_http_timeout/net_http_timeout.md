@@ -1,4 +1,7 @@
 ---
+title: net & http & timeout
+tags: Slide, Go, net/http, timeout
+description: View the slide with "Slide Mode".
 slideOptions:
   spotlight:
     enabled: false
@@ -13,7 +16,7 @@ net & http & timeout
 > [name=郭學聰 Hsueh-Tsung Kuo]
 > [time=Sun, 02 Aug 2020] [color=red]
 
-######  CC BY-SA 4.0
+###### CC BY-SA 4.0
 
 ---
 
@@ -697,4 +700,3 @@ background: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAMCAIAAAAs6
    margin-right:-10px;
 }
 </style>
-

@@ -1,20 +1,20 @@
 ---
-title: net & http & timeout
-tags: Slide, Go, net/http, timeout
+title: Celery meets Singleton
+tags: Slide, Python, Celery, singleton
 description: View the slide with "Slide Mode".
 slideOptions:
   spotlight:
     enabled: false
   allottedMinutes: 25
 ---
-net & http & timeout
+Celery meets Singleton
 ===
 
 <!-- .slide: data-background-color="pink" -->
 <!-- .slide: data-transition="zoom" -->
 
 > [name=郭學聰 Hsueh-Tsung Kuo]
-> [time=Sun, 02 Aug 2020] [color=red]
+> [time=Sun, 06 Sep 2020] [color=red]
 
 ###### CC BY-SA 4.0
 
@@ -57,292 +57,107 @@ a game programmer should be able to draw cute anime character(?)</small>
 
 <!-- .slide: data-transition="convex" -->
 
-4. net/http
-5. net/http Timeout
-    * Reason 
-    * Spec
-      * Server
-      * Client
-6. Streaming & Timeout
-7. Implementation
-8. Timer Issues
-9. Conclusion
-10. Reference
-11. Q&A
+4. Celery
+5. Singleton Task
+    * Situations
+    * Cases
+6. Current Implementation
+    * Principle
+    * Local Mutex
+    * Traditional Database
+    * Redis &amp; Google Cloud Memory Store
+
+----
+
+<!-- .slide: data-transition="convex" -->
+
+7. Alternative Implementation
+    * Repository
+    * Inspect
+    * Task Collective Suicide
+    * Demo
+8. Conclusion
+9. Reference
+10. Q&A
 
 ---
 
 <!-- .slide: data-transition="convex" -->
 
-## net/http
+## Celery
 
 ----
 
 <!-- .slide: data-transition="convex" -->
 
-### Information
+### What is Celery
 
-https://golang.org/pkg/net/http/
-
-----
-
-<!-- .slide: data-transition="convex" -->
-
-### Feature
-
-* HTTP
-  * Client
-  * Server
-  * Hijack
-      * WebSocket
-
----
-
-<!-- .slide: data-transition="convex" -->
-
-## net/http Timeout
+https://docs.celeryproject.org/en/stable/
 
 ----
 
 <!-- .slide: data-transition="convex" -->
 
-### Reason
-
-Leak File Descriptors
-
-```
-http: Accept error: accept tcp [::]:80: accept4: too many open files; retrying in 5ms
-```
-
-----
-
-<!-- .slide: data-transition="convex" -->
-
-### Reason
-
-Slowloris
-<small>https://en.wikipedia.org/wiki/Slowloris_(computer_security)</small>
-
-----
-
-<!-- .slide: data-transition="convex" -->
-
-### Spec
-
-The complete guide to Go net/http timeouts
-
-<small>https://blog.cloudflare.com/the-complete-guide-to-golang-net-http-timeouts/</small>
-
-----
-
-<!-- .slide: data-transition="convex" -->
-
-#### Server
-
-![http server timeout](https://blog.cloudflare.com/content/images/2016/06/Timeouts-001.png)
-
-----
-
-<!-- .slide: data-transition="convex" -->
-
-##### Phase Timeout
-
-```go=
-srv := &http.Server{
-    ReadTimeout:       5 * time.Second,
-    WriteTimeout:      10 * time.Second,
-    IdleTimeout:       60 * time.Second,
-    ReadHeaderTimeout: 1 * time.Second,
-}
-log.Println(srv.ListenAndServe())
-```
-
-----
-
-<!-- .slide: data-transition="convex" -->
-
-#### Client
-
-![http client timeout](https://blog.cloudflare.com/content/images/2016/06/Timeouts-002.png)
-
-----
-
-<!-- .slide: data-transition="convex" -->
-
-##### Entire Timeout
-
-```go=
-c := &http.Client{
-    Timeout: 15 * time.Second,
-}
-resp, err := c.Get("https://blog.filippo.io/")
-```
-
-----
-
-<!-- .slide: data-transition="convex" -->
-
-##### Phase Timeout
-
-```go=
-c := &http.Client{
-    Transport: &http.Transport{
-        Dial: (&net.Dialer{
-                Timeout:   30 * time.Second,
-                KeepAlive: 30 * time.Second,
-        }).Dial,
-        TLSHandshakeTimeout:   10 * time.Second,
-        ResponseHeaderTimeout: 10 * time.Second,
-        ExpectContinueTimeout: 1 * time.Second,
-        IdleConnTimeout:       60 * time.Second,
-    }
-}
-```
-
----
-
-<!-- .slide: data-transition="convex" -->
-
-## Streaming & Timeout
-
-----
-
-<!-- .slide: data-transition="convex" -->
-
-### Phase Timeout
-
-![http server timeout](https://blog.cloudflare.com/content/images/2016/06/Timeouts-001.png =738x216)
-
-![http client timeout](https://blog.cloudflare.com/content/images/2016/06/Timeouts-002.png =745x201)
-
-----
-
-<!-- .slide: data-transition="convex" -->
-
-### Streaming Timeout
-
-<small>net/http: no way of manipulating timeouts in Handler #16100</small>
-https://github.com/golang/go/issues/16100
-
-----
-
-<!-- .slide: data-transition="convex" -->
-
-### Streaming Timeout per Entrypoint
-
-# It does not exist!
-
-----
-
-<!-- .slide: data-transition="zoom" -->
-
-#### Game Over?
-
-* Good Game... GG
-* 人生ｵﾜﾀ ＼(^ o ^)／
-
-# :shit: :shit: :shit:
-
-----
-
-<!-- .slide: data-transition="zoom" -->
-
-#### Open Source
-
-# Do It Yourself
-
----
-
-<!-- .slide: data-transition="convex" -->
-
-## Implementation
-
-----
-
-<!-- .slide: data-transition="convex" -->
-
-### fieliapm/stream-http-go
-
-* Repository
-  * https://github.com/fieliapm/stream-http-go
-* GoDoc
-  * https://godoc.org/github.com/fieliapm/stream-http-go/pkg/stream_http
-
-----
-
-<!-- .slide: data-transition="convex" -->
-
-#### Client
-
-----
-
-<!-- .slide: data-transition="convex" -->
-
-##### Client Example
-
-```go=
-ctx := context.Background()
-
-client := http.DefaultClient
-
-requestMod := stream_http.RequestMod(func(req *http.Request) {
-    req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-    req.Header.Set("Authorization", "Bearer qawsedrftgyhujikolp")
-
-    query := req.URL.Query()
-    query.Add("param", "pvalue")
-    req.URL.RawQuery = query.Encode()
-})
-requestTimeout := stream_http.Timeout(500 * time.Millisecond)
-
-reqBody := bytes.NewBuffer([]byte("form=fvalue"))
-var respBody bytes.Buffer
-
-resp, err := stream_http.DoRequest(ctx, client, http.MethodPost, "http://httpbin.org/anything", reqBody, &respBody, requestMod, requestTimeout)
-//resp, err := stream_http.DoRequest(ctx, client, http.MethodGet, "http://httpbin.org/status/401", nil, &respBody, requestMod, requestTimeout)
-if err != nil {
-    return err
-}
-
-fmt.Printf("get response with status code: %d\n%s\n", resp.StatusCode, respBody.String())
-```
-
-----
-
-<!-- .slide: data-transition="convex" -->
-
-##### Spirit
-
-* context :arrow_forward: context, cancel()
-  * :warning: timeout event :arrow_right: cancel()
-  * :heavy_check_mark: chunk transmitted :arrow_right: reset timeout <!-- .element: class="fragment" data-fragment-index="1" -->
-
-----
-
-<!-- .slide: data-transition="convex" -->
-
-##### Client Control Flow
+### Structure
 
 ```graphviz
-digraph client_control_flow {
-    nodesep=1.0 // increases the separation between nodes
+digraph {
+    compound=true
+    rankdir=LR
 
-    node [color="hotpink" shape=box]
-    edge [color="hotpink" style=dashed]
+    graph [fontname="Source Sans Pro" fontsize=20]
+    node [fontname="Source Sans Pro" fontsize=18]
+    edge [fontname="Source Sans Pro" fontsize=12]
 
-    with_cancel [shape="oval" label="context.WithCancel()"]
-    context_parent [label="parent context"]
-    context [label="context"]
-    cancel [color="gray" label="cancel()"]
-    client_do [shape="oval" label="client.Do()"]
-    timer [shape="oval" label="time.AfterFunc()"]
+    subgraph cluster_service {
+        label="service"
 
-    context_parent->with_cancel [style=solid]
-    with_cancel->context [style=solid]
-    with_cancel->cancel [style=solid]
-    cancel->context [color="gray"]
-    context->client_do [style=solid]
-    timer->cancel [color="orange"]
+        task_1 [label="task 1" shape=box]
+        task_2 [label="task 2" shape=box]
+        peroidic_task [label="periodic task" shape=box]
+    }
+
+    subgraph cluster_broker {
+        label="Celery broker (call, inspect)"
+        concentrate=true
+
+        amqp [label="RabbitMQ AMQP" shape=box]
+    }
+
+    subgraph cluster_backend {
+        label="Celery backend (result)"
+        concentrate=true
+
+        rpc [label="RabbitMQ RPC" shape=box]
+    }
+
+    subgraph cluster_worker {
+        label="Celery worker"
+
+        worker_1 [label="worker 1" shape=box]
+        worker_2 [label="worker 2" shape=box]
+        worker_3 [label="worker 3" shape=box]
+    }
+
+    task_1 -> amqp [color="blue"]
+    task_2 -> amqp [color="blue"]
+    peroidic_task -> amqp [color="blue"]
+
+    amqp -> worker_1 [color="blue"]
+    amqp -> worker_2 [color="blue"]
+    amqp -> worker_3 [color="blue"]
+
+    amqp -> worker_1 [color="pink" style="dashed" dir="both"]
+    amqp -> worker_2 [color="pink" style="dashed" dir="both"]
+    amqp -> worker_3 [color="pink" style="dashed" dir="both"]
+
+    rpc -> task_1 [color="red"]
+    rpc -> task_2 [color="red"]
+    rpc -> peroidic_task [color="red"]
+
+    worker_1 -> rpc [color="red"]
+    worker_2 -> rpc [color="red"]
+    worker_3 -> rpc [color="red"]
 }
 ```
 
@@ -350,188 +165,319 @@ digraph client_control_flow {
 
 <!-- .slide: data-transition="convex" -->
 
-#### Server
+### Usage
 
-----
+```python=
+@app.task
+def my_task(arg1, arg2, kwarg1='a', kwarg2='b'):
+    ...
+    return result
+    
+result = my_task.delay(arg1, arg2, kwarg1='x', kwarg2='y')
+result = my_task.apply_async(args=[arg1, arg2],
+    kwargs={'kwarg1': 'x', 'kwarg2': 'y'},
+    countdown=60, expires=120)
 
-<!-- .slide: data-transition="convex" -->
-
-##### Server Example
-
-```go=
-func handleFunc(w http.ResponseWriter, req *http.Request) {
-    n, err := stream_http.TimeoutCopy(&reqBody, req.Body, time.Duration(-1), 500*time.Millisecond)
-
-    n, err = stream_http.TimeoutCopy(w, &respBody, 500*time.Millisecond, time.Duration(-1))
-}
+result.get()
 ```
-
-----
-
-<!-- .slide: data-transition="convex" -->
-
-##### Spirit
-
-* TimeoutCopy() :arrow_forward: copy goroutine
-  * :heavy_check_mark: chunk transmitted :arrow_right: reset timeout <!-- .element: class="fragment" data-fragment-index="1" -->
-  * :warning: timeout event :arrow_right: TimeoutCopy() <!-- .element: class="fragment" data-fragment-index="2" -->
-    * TimeoutCopy() :arrow_right: :x: copy goroutine <!-- .element: class="fragment" data-fragment-index="3" -->
-
-----
-
-<!-- .slide: data-transition="convex" -->
-
-##### Server Handle Flow
-
-```sequence
-note left of handler: receive request
-handler->TimeoutCopy(): call
-TimeoutCopy()->runtimeTimer: time.NewTimer()
-TimeoutCopy()->copy goroutine: request/response_writer
-
-note right of copy goroutine: chunk transmitted
-copy goroutine->runtimeTimer: timer.Reset()/timer.Stop()
-
-note right of copy goroutine: copy finished
-copy goroutine->TimeoutCopy(): copyResult/panic
-TimeoutCopy()->handler: copy result
-note left of handler: send ok/error response
-
-note right of runtimeTimer: timeout
-runtimeTimer->TimeoutCopy(): timer.C
-TimeoutCopy()->handler: error timeout
-TimeoutCopy()->copy goroutine: close(doneChan)
-note left of handler: send timeout response
-```
-
-----
-
-<!-- .slide: data-transition="convex" -->
-
-##### Question
-
-How to correctly stop server handler?
-
-----
-
-<!-- .slide: data-transition="convex" -->
-
-##### Answer
-
-# I don't know
-
-¯\\\_(ツ)\_/¯
 
 ---
 
 <!-- .slide: data-transition="convex" -->
 
-## Timer Issues
+## Singleton Task
 
 ----
 
 <!-- .slide: data-transition="convex" -->
 
-<small>time: Timer.C can still trigger even after Timer.Reset is called #11513</small>
-https://github.com/golang/go/issues/11513
+### Situations
+
+* Only one task can be running at any given time
+  * Launch only one worker
+    * *Pile tasks up*
+* Only one task can be **queued** at any given time
+  * Skip running task which is queued later
 
 ----
 
 <!-- .slide: data-transition="convex" -->
 
-Timer.Reset() note
-https://golang.org/pkg/time/#Timer.Reset
+### Cases
 
-<small>
-Reset should be invoked only on stopped or expired timers with drained channels. If a program has already received a value from t.C, the timer is known to have expired and the channel drained, so t.Reset can be used directly. If a program has not yet received a value from t.C, however, the timer must be stopped and—if Stop reports that the timer expired before being stopped—the channel explicitly drained:
-</small>
+* Garbage collect any resource
+  * Clear blobs on S3/GCS
+* Schedule background updating task
+  * Update all user data everyday
 
-```go=
-if !t.Stop() {
-    <-t.C
-}
-t.Reset(d)
+---
+
+<!-- .slide: data-transition="convex" -->
+
+## Current Implementation
+
+----
+
+<!-- .slide: data-transition="convex" -->
+
+### Principle #1
+
+* Sender checks existence of same task 
+* If there is no same task queued or running
+  * Send task to queue
+
+----
+
+<!-- .slide: data-transition="convex" -->
+
+### Principle #2
+
+* Worker accepts task
+* If any same task is already running
+  * Skip task and quit execution
+    * **Need at least two workers to flush out tasks**
+
+----
+
+<!-- .slide: data-transition="convex" -->
+
+### Local Mutex
+
+* Try to lock mutex
+* Use mutex locking to identify if task is running
+
+----
+
+<!-- .slide: data-transition="convex" -->
+
+### Traditional Database
+
+* Try to write semaphore into database
+* Check database to identify if task is running
+
+----
+
+<!-- .slide: data-transition="convex" -->
+
+### Redis &amp; Google Cloud Memory Store
+
+* Try to write a lock into Redis
+  * Use SETNX
+* Check Redis lock to identify if task is running
+  * Identify return value of SETNX
+
+----
+
+<!-- .slide: data-transition="convex" -->
+
+#### Redis Based Example
+
+Celery-Singleton
+https://github.com/steinitzu/celery-singleton
+
+----
+
+<!-- .slide: data-transition="convex" -->
+
+#### Redis Based Feature
+
+* Efficient
+* Responsive
+* No one will unlock Redis lock if worker is panic
+  * Set lock TTL
+    * Cannot estimate reasonable TTL when task duration is very unstable
+
+---
+
+<!-- .slide: data-transition="convex" -->
+
+## Another Implementation
+
+----
+
+<!-- .slide: data-transition="convex" -->
+
+### Repository
+
+# CCS
+
+----
+
+<!-- .slide: data-transition="convex" -->
+
+#### ~~CCS~~
+
+~~Card Captor Sakura~~
+
+![card_captor_sakura](https://upload.wikimedia.org/wikipedia/en/5/50/Cardcaptor_Sakura_vol1_cover.jpg)
+
+----
+
+<!-- .slide: data-transition="convex" -->
+
+#### CCS
+
+Celery-controlled singleton
+https://github.com/fieliapm/celery_controlled_singleton
+
+----
+
+<!-- .slide: data-transition="convex" -->
+
+### Inspect
+
+* If any same task is already running (active)
+  * Skip task and quit execution
+
+----
+
+<!-- .slide: data-transition="convex" -->
+
+#### Idea
+
+:bulb:
+
+```python=
+i = celery_app.control.inspect(timeout=1.0) # collect response after 1.0 second
+i.active() # get active tasks
+# then find same tasks in active tasks
 ```
 
-<small>
-This should not be done concurrent to other receives from the Timer's channel.
-</small>
-
 ----
 
 <!-- .slide: data-transition="convex" -->
 
-<small>time: Timer.Reset is not possible to use correctly #14038</small>
-https://github.com/golang/go/issues/14038
+#### Detail
 
-----
-
-<!-- .slide: data-transition="convex" -->
-
-Timer.Reset() note
-https://golang.org/pkg/time/#Timer.Reset
-
-<small>
-Note that it is not possible to use Reset's return value correctly, as there is a race condition between draining the channel and the new timer expiring. Reset should always be invoked on stopped or expired channels, as described above. The return value exists to preserve compatibility with existing programs.
-</small>
-
-----
-
-<!-- .slide: data-transition="convex" -->
-
-### Understand Timer Behaviour
-
-```go=
-if !t.Stop() {
-    <-t.C // don't do this if t.C is drained from another goroutine
+<style>
+code.blue {
+  color: #337AB7 !important;
 }
-_ = t.Reset(d) // don't use return value
-```
+code.orange {
+  color: #F7A004 !important;
+}
+</style>
+
+* <code class="orange">inspect.active()</code>: running tasks
+* <code class="blue">inspect.reserved()</code>: queued tasks
+* <code class="blue">inspect.scheduled()</code>: scheduled ETA tasks
+
+:warning: You cannot atomically inspect all of them
 
 ----
 
 <!-- .slide: data-transition="convex" -->
 
-### Broken Timer Implementation
+#### Feature
 
-* Go version
-  * go \< 1.8 :arrow_right: crap <!-- .element: class="fragment" data-fragment-index="1" -->
-  * go \>= 1.8 (added note) :arrow_right: crap <!-- .element: class="fragment" data-fragment-index="2" -->
-
-----
-
-<!-- .slide: data-transition="convex" -->
-
-### History Repeats Itself
-
-* <small>time: Timer.C can still trigger even after Timer.Reset is called #11513</small>
-* <small>time: Timer.Reset is not possible to use correctly #14038</small>
-* <small>... ...</small>
+* Broker/backend independent
+  * Based on any broker/backend such as AMQP/RPC :100:
+  * Don't need Redis lock
+    * Don't need to argue with SRE :tada:
+* Inspect is slow
+  * Affected by **timeout** parameter <!-- .element: class="fragment" data-fragment-index="1" -->
+    * Short timeout causes inspect result missing <!-- .element: class="fragment" data-fragment-index="2" -->
+  * Are delayed tasks really urgent? <!-- .element: class="fragment" data-fragment-index="3" -->
 
 ----
 
 <!-- .slide: data-transition="convex" -->
 
-![Georg Wilhelm Friedrich Hegel](https://upload.wikimedia.org/wikipedia/commons/b/bf/1831_Schlesinger_Philosoph_Georg_Friedrich_Wilhelm_Hegel_anagoria.JPG =379x480)
+#### Race Condition
 
-<small>Georg Wilhelm Friedrich Hegel
-https://de.wikipedia.org/wiki/Georg_Wilhelm_Friedrich_Hegel</small>
-
-----
-
-<!-- .slide: data-transition="convex" -->
-
-> <small> Was die Erfahrung aber und die Geschichte lehren, ist dieses, daß **Völker und Regierungen niemals etwas aus der Geschichte gelernt** und nach Lehren, die aus derselben zu ziehen gewesen wären, gehandelt haben. </small>
-> [name=Georg Wilhelm Friedrich Hegel]
-
-:dizzy:
+# Task Collective Suicide
 
 ----
 
 <!-- .slide: data-transition="convex" -->
 
-> <small> We learn from history that **we do not learn from history**. </small>
-> [name=Georg Wilhelm Friedrich Hegel]
+### Task Collective Suicide
+
+----
+
+<!-- .slide: data-transition="convex" -->
+
+#### Reason
+
+* Task 1 and task 2 have same function &amp; parameter
+* Worker 1 accepts task 1
+* Worker 2 accepts task 2
+  * They started simultaneously
+* Worker 1 inspects and found task 2
+* Worker 2 inspects and found task 1
+* Worker 1 skips task 1 and quit
+* Worker 2 skips task 2 and quit
+  * No worker finishes the singleton task
+
+----
+
+<!-- .slide: data-transition="convex" -->
+
+#### Solution
+
+* Absolute time_start
+  * Since v4.2.0rc1
+  * Find same tasks with the earliest time_start
+
+----
+
+<!-- .slide: data-transition="convex" -->
+
+#### Trap
+
+* Multiple worker instances
+  * No truly absolute time_start
+      * Race hazard happens
+
+----
+
+<!-- .slide: data-transition="convex" -->
+
+##### Reason
+
+* Current standard time is 12:00:01
+* Worker 1 accepts task 1 at 12:00:03 (12:00:01)
+* Worker 1 inspects :arrow_right: task 1 is first task
+* Worker 2 accepts task 2 at 12:00:00 (12:00:02)
+* Worker 2 inspects :arrow_right: task 2 is first task
+  * Because task 2 has earlier time_start
+* Worker 1 runs task 1
+* Worker 2 runs task 2
+  * Two same tasks are running
+
+----
+
+<!-- .slide: data-transition="convex" -->
+
+##### Reason (Alternative)
+
+* Worker 1 accepts task 1
+* Worker 2 accepts task 2
+* Worker 2 reports task 2 active to broker
+* Worker 2 inspects :arrow_right: task 2 is first task
+* Worker 1 reports task 1 active to broker (lag)
+* Worker 1 inspects :arrow_right: task 1 is first task
+* Worker 1 runs task 1
+* Worker 2 runs task 2
+  * Two same tasks are running
+
+----
+
+<!-- .slide: data-transition="convex" -->
+
+#### Mitigate Race Condition
+
+* Delay before inspection
+  * To ensure all same tasks listed in active list
+
+----
+
+<!-- .slide: data-transition="convex" -->
+
+### Demo
+
+Celery-controlled singleton
+https://github.com/fieliapm/celery_controlled_singleton
 
 ---
 
@@ -545,12 +491,11 @@ https://de.wikipedia.org/wiki/Georg_Wilhelm_Friedrich_Hegel</small>
 
 ### Contribute!
 
-* fieliapm/stream-http-go
-  * Better client interface
-  * Server side timeout handling example
-    * How to correctly stop server handler
+* fieliapm/celery_controlled_singleton
+  * Better implementation
+    * No race condition
 
-> [name=郭學聰 Hsueh-Tsung Kuo] [time=2020_08_02] [color=red] :notebook:
+> [name=郭學聰 Hsueh-Tsung Kuo] [time=2020_09_06] [color=red] :notebook:
 
 ---
 
@@ -562,12 +507,16 @@ https://de.wikipedia.org/wiki/Georg_Wilhelm_Friedrich_Hegel</small>
 
 <!-- .slide: data-transition="convex" -->
 
-### Blog
+### Link
 
-* The complete guide to Go net/http timeouts \[en\]
-  * <small>https://blog.cloudflare.com/the-complete-guide-to-golang-net-http-timeouts/</small>
-* How to use timer reset in Golang correctly \[zh\]
-  * <small>https://tonybai.com/2016/12/21/how-to-use-timer-reset-in-golang-correctly/</small>
+* celery
+  * https://docs.celeryproject.org/en/stable/
+* how to implement single task:
+  * <small>https://stackoverflow.com/questions/20894771/celery-beat-limit-to-single-task-instance-at-a-time</small>
+* another possibility:
+  * <small>https://stackoverflow.com/questions/20091505/celery-task-with-a-time-start-attribute-in-1970/20096342</small>
+  * https://github.com/celery/celery/pull/3684
+<small><small>https://github.com/celery/celery/blob/c0e587e94575d7be9bfdabe40c1d5dfda268e68e/celery/worker/request.py#L432</small></small>
 
 ---
 
@@ -647,13 +596,13 @@ p.bloB {
 	background: #E3BDB3;
 }
 
-.slide-number{
+/*.slide-number{
 	margin-bottom:10px !important;
 	width:100%;
 	text-align:center;
 	font-size:25px !important;
 	background-color:transparent !important;
-}
+}*/
 iframe.myclass{
 	width:100px;
 	height:100px;

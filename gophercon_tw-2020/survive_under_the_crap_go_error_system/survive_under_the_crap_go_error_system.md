@@ -38,6 +38,8 @@ a game programmer should be able to draw cute anime character(?)</small>
 * Usually develop something related to my work in Python, Ruby, ECMAScript, Golang, C#
 * ECMAScript hater since **Netscape** is dead
 * Built CDN-aware game asset update system
+* Professional small vehicle driver
+* Draw cute anime character in spare time
 
 ---
 
@@ -295,10 +297,10 @@ func main() {
 		fmt.Println("error is:", err)
 
 		if errors.Is(err, myErr) {
-			fmt.Println("It is myErr!")
+			fmt.Println("it is myErr!")
 		}
 		if !errors.Is(err, myErr2) {
-			fmt.Println("It is NOT myErr2!")
+			fmt.Println("it is NOT myErr2!")
 		}
 
 		fmt.Println("")
@@ -310,6 +312,21 @@ func main() {
 		}
 	}
 }
+```
+
+----
+
+<!-- .slide: data-transition="convex" -->
+
+#### Result
+
+```shell
+error is: err5: err4: my err3: err2: err1
+it is myErr!
+it is NOT myErr2!
+
+failed: err5: err4: my err3: err2: err1
+MyError: my err3: err2: err1
 ```
 
 ----
@@ -354,7 +371,7 @@ fmt.Printf("%+v\n", err)
 
 <!-- .slide: data-transition="convex" -->
 
-#### Customize Error Type
+#### Example
 
 ```go=
 package main
@@ -365,33 +382,45 @@ import (
 	"golang.org/x/xerrors"
 )
 
-type MyError2 struct {
-	Message string
-	frame   xerrors.Frame
+func MyFuncInner() error {
+	return xerrors.New("inner error")
 }
 
-func (m *MyError2) Error() string {
-	return m.Message
+func MyFuncMiddle() error {
+	err := MyFuncInner()
+	return xerrors.Errorf("middle error: %w", err)
 }
 
-func (m *MyError2) Format(f fmt.State, c rune) { // implements fmt.Formatter
-	xerrors.FormatError(m, f, c)
-}
-
-func (m *MyError2) FormatError(p xerrors.Printer) error { // implements xerrors.Formatter
-	p.Print(m.Message)
-	if p.Detail() {
-		m.frame.Format(p)
-	}
-	return nil
+func MyFuncOuter() error {
+	err := MyFuncMiddle()
+	return xerrors.Errorf("outer error: %w", err)
 }
 
 func main() {
-	err := &MyError2{Message: "oops", frame: xerrors.Caller(1)}
-	fmt.Printf("%v\n", err)
-	fmt.Println()
+	err := MyFuncOuter()
+	fmt.Printf("%v\n\n", err)
 	fmt.Printf("%+v\n", err)
 }
+```
+
+----
+
+<!-- .slide: data-transition="convex" -->
+
+#### Result
+
+```shell
+outer error: middle error: inner error
+
+outer error:
+    main.MyFuncOuter
+        /.../go/src/survive_under_the_crap_go_error_system/xerrors_example.go:20
+  - middle error:
+    main.MyFuncMiddle
+        /.../go/src/survive_under_the_crap_go_error_system/xerrors_example.go:15
+  - inner error:
+    main.MyFuncInner
+        /.../go/src/survive_under_the_crap_go_error_system/xerrors_example.go:10
 ```
 
 ----
@@ -429,6 +458,86 @@ cause = pkg_errors.Cause(err)
 
 ```go=
 fmt.Printf("%+v\n", err)
+```
+
+----
+
+<!-- .slide: data-transition="convex" -->
+
+#### Example
+
+```go=
+package main
+
+import (
+	"fmt"
+
+	pkg_errors "github.com/pkg/errors"
+)
+
+func MyFuncInner() error {
+	return pkg_errors.New("inner error")
+}
+
+func MyFuncMiddle() error {
+	err := MyFuncInner()
+	return pkg_errors.Wrap(err, "middle error")
+}
+
+func MyFuncOuter() error {
+	err := MyFuncMiddle()
+	return pkg_errors.Wrapf(err, "outer error - %d", 2)
+}
+
+func main() {
+	err := MyFuncOuter()
+	fmt.Printf("%v\n\n", err)
+	fmt.Printf("%+v\n", err)
+}
+```
+
+----
+
+<!-- .slide: data-transition="convex" -->
+
+#### Result
+
+```shell
+outer error - 2: middle error: inner error
+
+inner error
+main.MyFuncInner
+	/.../go/src/survive_under_the_crap_go_error_system/pkg_errors_example.go:10
+main.MyFuncMiddle
+	/.../go/src/survive_under_the_crap_go_error_system/pkg_errors_example.go:14
+main.MyFuncOuter
+	/.../go/src/survive_under_the_crap_go_error_system/pkg_errors_example.go:19
+main.main
+	/.../go/src/survive_under_the_crap_go_error_system/pkg_errors_example.go:24
+runtime.main
+	/usr/local/go/src/runtime/proc.go:204
+runtime.goexit
+	/usr/local/go/src/runtime/asm_amd64.s:1374
+middle error
+main.MyFuncMiddle
+	/.../go/src/survive_under_the_crap_go_error_system/pkg_errors_example.go:15
+main.MyFuncOuter
+	/.../go/src/survive_under_the_crap_go_error_system/pkg_errors_example.go:19
+main.main
+	/.../go/src/survive_under_the_crap_go_error_system/pkg_errors_example.go:24
+runtime.main
+	/usr/local/go/src/runtime/proc.go:204
+runtime.goexit
+	/usr/local/go/src/runtime/asm_amd64.s:1374
+outer error - 2
+main.MyFuncOuter
+	/.../go/src/survive_under_the_crap_go_error_system/pkg_errors_example.go:20
+main.main
+	/.../go/src/survive_under_the_crap_go_error_system/pkg_errors_example.go:24
+runtime.main
+	/usr/local/go/src/runtime/proc.go:204
+runtime.goexit
+	/usr/local/go/src/runtime/asm_amd64.s:1374
 ```
 
 ----
